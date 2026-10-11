@@ -1,6 +1,6 @@
 import { HydratedDocument } from 'mongoose';
-import { ITrip, TripModel } from '../models/trips';
-
+import { ITrip, TripInput, TripModel } from '../models/trips';
+import { toDate } from '../utils/helpers';
 export class TripService {
 
   async getAllTrips(): Promise<ITrip[]> {
@@ -11,13 +11,21 @@ export class TripService {
     return await TripModel.findById(id).lean();
   }
 
-  async createTrip(tripData: ITrip): Promise<HydratedDocument<ITrip>> {
-    const trip = new TripModel(tripData);
+    async createTrip(tripData: TripInput): Promise<HydratedDocument<ITrip>> {
+    const trip = new TripModel({
+      ...tripData,
+      startDate: toDate(tripData.startDate),
+      endDate: toDate(tripData.endDate),
+    });
     return await trip.save();
   }
 
-  async updateTrip(id: string, tripData: ITrip): Promise<ITrip | null> {
-    return await TripModel.findByIdAndUpdate(id, tripData, { returnDocument: 'after', runValidators: true }).lean();
+  async updateTrip(id: string, tripData: TripInput): Promise<ITrip | null> {
+    return await TripModel.findByIdAndUpdate(
+      id,
+      { ...tripData, startDate: toDate(tripData.startDate), endDate: toDate(tripData.endDate) },
+      { returnDocument: 'after', runValidators: true }
+    ).lean();
   }
 
   async deleteTrip(id: string): Promise<ITrip | null> {

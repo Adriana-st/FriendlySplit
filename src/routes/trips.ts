@@ -1,13 +1,16 @@
 import { Router } from 'express';
 import { TripController } from '../controllers/trips';
+import { validate, validateParams } from '../middleware/validate.middleware';
+import { tripParamsZSchema } from '../models/common';
+import { tripZSchema } from '../models/trips';
 
 const router = Router();
 const tripController = new TripController();
 
 router.get('/', tripController.getTrips);
-router.get('/:tripId', tripController.getTripById);
-router.post('/', tripController.createTrip);
-router.put('/:tripId', tripController.updateTrip);
-router.delete('/:tripId', tripController.deleteTrip);
+router.get('/:tripId', validateParams(tripParamsZSchema), tripController.getTripById);
+router.post('/', validate(tripZSchema), tripController.createTrip);
+router.put('/:tripId', validateParams(tripParamsZSchema), validate(tripZSchema), tripController.updateTrip);
+router.delete('/:tripId', validateParams(tripParamsZSchema), tripController.deleteTrip);
 
 export default router;
