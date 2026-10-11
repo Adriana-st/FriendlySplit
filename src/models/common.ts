@@ -9,6 +9,7 @@ export const isoDateZSchema = z.iso.date('Must be a valid date in the format YYY
 /** Path parameters used by the routes. */
 export const tripParamsZSchema = z.object({ tripId: objectIdZSchema });
 export const participantParamsZSchema = tripParamsZSchema.extend({ participantId: objectIdZSchema });
+export const expenseParamsZSchema = tripParamsZSchema.extend({ expenseId: objectIdZSchema });
 
 /** ?page=1&limit=20 - query strings arrive as text, so they are coerced to numbers. */
 export const paginationZShape = {

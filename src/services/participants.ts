@@ -2,6 +2,7 @@ import { ParticipantInput, ParticipantModel, ParticipantQuery } from '../models/
 import { TripService } from './trips';
 import { conflict } from '../utils/errors';
 import { buildSelect, buildSort, escapeRegex, paginate } from '../utils/helpers';
+import { ExpenseModel } from '../models/expenses';
 
 const tripService = new TripService();
 
@@ -62,6 +63,19 @@ export class ParticipantService {
 
   async deleteParticipant(tripId: string, id: string) {
     await tripService.requireTrip(tripId);
-    return await ParticipantModel.findOneAndDelete({ _id: id, trip: tripId }).lean();
+
+    const existing = await ParticipantModel.findOne({ _id: id, trip: tripId }).lean();
+    if (!existing) return null;
+
+    // Business rule: someone who paid for, or shares in, an expense cannot be removed
+    const inUse = await ExpenseModel.exists({
+      trip: tripId,
+      $or: [{ paidBy: id }, { 'splits.participant': id }],
+    });
+    if (inUse) {
+      throw conflict('This participant is used by existing expenses. Delete or change those expenses first');
+    }
+
+    return await ParticipantModel.findByIdAndDelete(id).lean();
   }
 }

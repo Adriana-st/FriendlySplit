@@ -204,3 +204,124 @@ DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
 
 ### Delete the same participant again (already gone) -> 404
 DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+
+
+### EXPENSES
+
+### Create an expense with an explicit split (60.00 EUR, 20.00 + 40.00) -> 201 Created
+# @name dinner
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Seafood dinner",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03",
+  "splits": [
+    { "participant": "{{adriId}}", "share": 2000 },
+    { "participant": "{{mariaId}}", "share": 4000 }
+  ]
+}
+
+###
+# id of the expense created above
+@dinnerId = {{dinner.response.body._id}}
+
+### Create an expense with no splits (shared equally) -> 201 Created
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{mariaId}}",
+  "description": "Airport taxi",
+  "amount": 3001,
+  "category": "transport",
+  "date": "2026-11-01"
+}
+
+### Create an expense whose shares do not add up to the amount -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Bad split",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03",
+  "splits": [{ "participant": "{{adriId}}", "share": 1 }]
+}
+
+### Create an expense with a decimal amount instead of whole cents -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Decimal",
+  "amount": 10.5,
+  "category": "food",
+  "date": "2026-11-03"
+}
+
+### Create an expense paid by someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{missing}}",
+  "description": "Stranger paid",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-11-03"
+}
+
+### Create an expense dated outside the trip -> 422
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Too late",
+  "amount": 1000,
+  "category": "other",
+  "date": "2027-01-01"
+}
+
+### Filter expenses: food only -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?category=food HTTP/1.1
+
+### Filter expenses: 50.00 or more (amounts are in cents) -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?minAmount=5000 HTTP/1.1
+
+### Filter expenses: date range -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?from=2026-11-02&to=2026-11-05 HTTP/1.1
+
+### Search expense descriptions for "taxi" -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?search=taxi HTTP/1.1
+
+### Sort by biggest amount, showing only description and amount -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?sort=-amount&fields=description,amount HTTP/1.1
+
+### Filter with minAmount greater than maxAmount -> 400
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?minAmount=9000&maxAmount=100 HTTP/1.1
+
+### Get one expense -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses/{{dinnerId}} HTTP/1.1
+
+### Replace an expense -> 200
+PUT {{baseUrl}}/trips/{{brusselsTripId}}/expenses/{{dinnerId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Seafood dinner (updated)",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03"
+}
+
+### Delete a participant who is used by an expense -> 409 Conflict
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{adriId}} HTTP/1.1

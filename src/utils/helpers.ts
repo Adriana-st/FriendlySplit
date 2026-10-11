@@ -2,6 +2,9 @@
 export const toDate = (isoDate: string): Date => 
     new Date(`${isoDate}T00:00:00.000Z`);
 
+/** Converts a Date back to "YYYY-MM-DD" for messages. */
+export const dayText = (date: Date): string => date.toISOString().slice(0, 10);
+
 /**
  * Escapes characters that have a special meaning in regular expressions so that user input
  * can be used safely inside a MongoDB $regex filter (prevents regex injection).
