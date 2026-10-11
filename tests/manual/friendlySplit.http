@@ -365,6 +365,7 @@ Content-Type: application/json
   "isAdmin": true
 }
 
+
 ### Operator injection in a query string -> 400
 GET {{baseUrl}}/trips?currency[$ne]=EUR HTTP/1.1
 
@@ -372,7 +373,26 @@ GET {{baseUrl}}/trips?currency[$ne]=EUR HTTP/1.1
 POST {{baseUrl}}/trips HTTP/1.1
 Content-Type: application/json
 
-{ "name": "broken
+# { "name": "broken
 
 ### Get a trip with a bad id in the path -> 400
 GET {{baseUrl}}/trips/not-an-id HTTP/1.1
+
+
+### SEEDED DATA (run npm run seed first)
+
+# fixed ids from test-data/friendlysplit-testdata.json
+@lisbonId = 64f000000000000000000001
+@donegalId = 64f000000000000000000002
+
+### Lisbon expenses over 50.00, biggest first -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/expenses?minAmount=5000&sort=-amount HTTP/1.1
+
+### Lisbon food expenses only -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/expenses?category=food HTTP/1.1
+
+### Lisbon balances: who owes whom -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/balances HTTP/1.1
+
+### Same email, different trip: Adri is on Donegal as well -> 200
+GET {{baseUrl}}/trips/{{donegalId}}/participants HTTP/1.1
