@@ -67,6 +67,84 @@ const splitZSchema = z.strictObject({
 });
 
 /**
+ * @openapi
+ * components:
+ *   schemas:
+ *     Category:
+ *       type: string
+ *       enum: [food, transport, accommodation, activities, other]
+ *     Split:
+ *       type: object
+ *       required:
+ *         - participant
+ *         - share
+ *       additionalProperties: false
+ *       properties:
+ *         participant:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         share:
+ *           type: integer
+ *           minimum: 0
+ *           description: This person's share in cents
+ *           example: 2000
+ *     ExpenseInput:
+ *       type: object
+ *       required:
+ *         - paidBy
+ *         - description
+ *         - amount
+ *         - category
+ *         - date
+ *       additionalProperties: false
+ *       properties:
+ *         paidBy:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         description:
+ *           type: string
+ *           maxLength: 120
+ *           example: Seafood dinner
+ *         amount:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100000000
+ *           description: Total in cents
+ *           example: 6000
+ *         category:
+ *           $ref: '#/components/schemas/Category'
+ *         date:
+ *           type: string
+ *           format: date
+ *           description: Must fall within the trip dates
+ *           example: '2026-07-03'
+ *         splits:
+ *           type: array
+ *           minItems: 1
+ *           maxItems: 50
+ *           description: Optional. Each participant may appear once and the shares must add up exactly to amount. When left out, the amount is split equally between all participants of the trip.
+ *           items:
+ *             $ref: '#/components/schemas/Split'
+ *     Expense:
+ *       allOf:
+ *         - type: object
+ *           properties:
+ *             _id:
+ *               $ref: '#/components/schemas/ObjectId'
+ *             trip:
+ *               $ref: '#/components/schemas/ObjectId'
+ *         - $ref: '#/components/schemas/ExpenseInput'
+ *         - type: object
+ *           required:
+ *             - splits
+ *           properties:
+ *             createdAt:
+ *               type: string
+ *               format: date-time
+ *             updatedAt:
+ *               type: string
+ *               format: date-time
+ */
+
+/**
  * Body for POST and PUT on /trips/:tripId/expenses.
  * "splits" is optional - when it is left out the amount is divided equally between everyone on the trip.
  */

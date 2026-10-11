@@ -6,6 +6,8 @@ import tripRoutes from './routes/trips';
 import { logger } from "./middleware/logging.middleware";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 import { env } from "./config/env";
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from "./config/swagger";
 
 export const app: Application = express();
 app.use(logger);
@@ -16,6 +18,11 @@ app.use(express.json({ limit: '10kb' })); // refuse huge request bodies
 if (env.nodeEnv !== 'test') {
     app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 500 }));
 }
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+    res.json(swaggerSpec);
+});
 
 app.get('/api/v1/health', (_req: Request, res: Response) => {
     res.json({

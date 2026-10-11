@@ -24,6 +24,59 @@ const tripSchema = new Schema<ITrip>(
 
 export const TripModel = model<ITrip>('Trip', tripSchema);
 
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     TripInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - currency
+ *         - startDate
+ *         - endDate
+ *       additionalProperties: false
+ *       properties:
+ *         name:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 60
+ *           example: Lisbon City Break
+ *         destination:
+ *           type: string
+ *           maxLength: 80
+ *           example: Lisbon
+ *         currency:
+ *           type: string
+ *           pattern: '^[A-Za-z]{3}$'
+ *           description: Three letter currency code (stored in upper case)
+ *           example: EUR
+ *         startDate:
+ *           type: string
+ *           format: date
+ *           example: '2026-07-01'
+ *         endDate:
+ *           type: string
+ *           format: date
+ *           description: Must not be before startDate
+ *           example: '2026-07-08'
+ *     Trip:
+ *       allOf:
+ *         - type: object
+ *           properties:
+ *             _id:
+ *               $ref: '#/components/schemas/ObjectId'
+ *         - $ref: '#/components/schemas/TripInput'
+ *         - type: object
+ *           properties:
+ *             createdAt:
+ *               type: string
+ *               format: date-time
+ *             updatedAt:
+ *               type: string
+ *               format: date-time
+ */
+
 export const tripZSchema = z
   .strictObject({
     name: z.string().trim().min(3, 'Name must be at least 3 characters').max(60),
