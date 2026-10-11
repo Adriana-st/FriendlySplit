@@ -349,3 +349,30 @@ Content-Type: application/json
 
 ### Delete the trip: its participants and expenses go with it -> 204 No Content
 DELETE {{baseUrl}}/trips/{{brusselsTripId}} HTTP/1.1
+
+
+### SECURITY
+
+### Create a trip with an unknown field (no mass assignment) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Hacked",
+  "currency": "EUR",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-08",
+  "isAdmin": true
+}
+
+### Operator injection in a query string -> 400
+GET {{baseUrl}}/trips?currency[$ne]=EUR HTTP/1.1
+
+### Create a trip with malformed JSON (safe error message) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{ "name": "broken
+
+### Get a trip with a bad id in the path -> 400
+GET {{baseUrl}}/trips/not-an-id HTTP/1.1
