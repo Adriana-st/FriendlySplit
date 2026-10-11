@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:3000/api/v1
+
+### List trips
+GET {{baseUrl}}/trips
+
+### Create a trip
+POST {{baseUrl}}/trips
+Content-Type: application/json
+
+{
+  "name": "Lisbon City Break",
+  "destination": "Lisbon",
+  "currency": "EUR",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-08"
+}
+
+### Get one trip
+GET {{baseUrl}}/trips/abc123
+
+### Replace a trip
+PUT {{baseUrl}}/trips/abc123
+Content-Type: application/json
+
+{
+  "name": "Lisbon and Sintra"
+}
+
+### Delete a trip
+DELETE {{baseUrl}}/trips/abc123
