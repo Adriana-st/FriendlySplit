@@ -1,10 +1,39 @@
 import { HydratedDocument } from 'mongoose';
-import { ITrip, TripInput, TripModel } from '../models/trips';
-import { toDate } from '../utils/helpers';
+import { ITrip, TripInput, TripModel, TripQuery } from '../models/trips';
+import { buildSelect, buildSort, escapeRegex, paginate, toDate } from '../utils/helpers';
+
 export class TripService {
 
-  async getAllTrips(): Promise<ITrip[]> {
-    return await TripModel.find().lean();
+  async getAllTrips(query: TripQuery) {
+    const filter: Record<string, any> = {};
+
+    if (query.destination) {
+      filter.destination = { $regex: escapeRegex(query.destination), $options: 'i' };
+    }
+    if (query.currency) {
+      filter.currency = query.currency;
+    }
+
+    const startRange: Record<string, Date> = {};
+    if (query.startsAfter) startRange.$gte = toDate(query.startsAfter);
+    if (query.startsBefore) startRange.$lte = toDate(query.startsBefore);
+    if (Object.keys(startRange).length > 0) {
+      filter.startDate = startRange;
+    }
+
+    const { skip, limit } = paginate(query.page, query.limit);
+
+    const [trips, total] = await Promise.all([
+      TripModel.find(filter)
+        .select(buildSelect(query.fields))
+        .sort({ ...buildSort(query.sort), _id: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      TripModel.countDocuments(filter),
+    ]);
+
+    return { trips, total };
   }
 
   async getTripById(id: string): Promise<ITrip | null> {

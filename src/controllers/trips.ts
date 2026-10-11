@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { TripService } from '../services/trips';
 import { handleError } from '../utils/errors';
+import { TripQuery } from '../models/trips';
+import { listResponse } from '../utils/helpers';
 
 const tripService = new TripService();
 
@@ -8,8 +10,9 @@ export class TripController {
 
   getTrips = async (_req: Request, res: Response): Promise<void> => {
     try {
-      const trips = await tripService.getAllTrips();
-      res.status(200).json(trips);
+      const query = res.locals.query as TripQuery;
+      const { trips, total } = await tripService.getAllTrips(query);
+      res.status(200).json(listResponse(trips, query.page, query.limit, total));
     } catch (error) {
       handleError(res, error, 'Error fetching trips');
     }

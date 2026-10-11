@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { z } from 'zod';
-import { isoDateZSchema } from './common';
+import { fieldsZSchema, isoDateZSchema, paginationZShape } from './common';
 
 export interface ITrip {
   name: string;
@@ -41,3 +41,18 @@ export const tripZSchema = z
     path: ['endDate'],
   });
 export type TripInput = z.infer<typeof tripZSchema>;
+
+export const TRIP_SORT_FIELDS = ['startDate', '-startDate', 'name', '-name', 'createdAt', '-createdAt'] as const;
+export const TRIP_FIELDS = ['name', 'destination', 'currency', 'startDate', 'endDate', 'createdAt', 'updatedAt'] as const;
+
+/** Query string for GET /trips. strictObject rejects any parameter that is not listed. */
+export const tripQueryZSchema = z.strictObject({
+  destination: z.string().trim().min(1).max(80).optional(), // partial, case-insensitive match
+  currency: z.string().trim().length(3).toUpperCase().optional(),
+  startsAfter: isoDateZSchema.optional(), // trips starting on or after this date
+  startsBefore: isoDateZSchema.optional(), // trips starting on or before this date
+  sort: z.enum(TRIP_SORT_FIELDS).default('-startDate'),
+  fields: fieldsZSchema(TRIP_FIELDS),
+  ...paginationZShape,
+});
+export type TripQuery = z.infer<typeof tripQueryZSchema>;

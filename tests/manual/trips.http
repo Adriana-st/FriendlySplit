@@ -8,11 +8,11 @@ POST {{baseUrl}}/trips HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "Barcelona Weekend",
-  "destination": "Barcelona",
+  "name": "Italy Adventure",
+  "destination": "Rome, Florence, Venice",
   "currency": "eur",
-  "startDate": "2026-11-06",
-  "endDate": "2026-11-09"
+  "startDate": "2026-08-12",
+  "endDate": "2026-08-24"
 }
 
 ###
@@ -81,3 +81,32 @@ DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
 
 ### Delete the same trip again (already gone) -> 404
 DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+
+### FILTERING, SORTING, PROJECTION AND PAGING
+
+### Filter by destination (partial, case-insensitive) -> 200
+GET {{baseUrl}}/trips?destination=lis HTTP/1.1
+
+### Filter by currency -> 200
+GET {{baseUrl}}/trips?currency=GBP HTTP/1.1
+
+### Filter by start date range -> 200
+GET {{baseUrl}}/trips?startsAfter=2026-08-01&startsBefore=2026-10-10 HTTP/1.1
+
+### Sort by name, A to Z -> 200
+GET {{baseUrl}}/trips?sort=name HTTP/1.1
+
+### Sort by name, Z to A -> 200
+GET {{baseUrl}}/trips?sort=-name HTTP/1.1
+
+### Projection: only the name and currency fields -> 200
+GET {{baseUrl}}/trips?fields=name,currency HTTP/1.1
+
+### Paging: 2 trips per page, second page -> 200
+GET {{baseUrl}}/trips?sort=name&limit=2&page=2 HTTP/1.1
+
+### Unknown sort field -> 400
+GET {{baseUrl}}/trips?sort=colour HTTP/1.1
+
+### MongoDB operator injection attempt -> 400
+GET {{baseUrl}}/trips?destination[$ne]=x HTTP/1.1
