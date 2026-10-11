@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TripService } from '../services/trips';
+import { handleError } from '../utils/errors';
 
 const tripService = new TripService();
 
@@ -10,8 +11,7 @@ export class TripController {
       const trips = await tripService.getAllTrips();
       res.status(200).json(trips);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error fetching trips' });
+      handleError(res, error, 'Error fetching trips');
     }
   };
 
@@ -24,18 +24,16 @@ export class TripController {
       }
       res.status(200).json(trip);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error fetching trip' });
+      handleError(res, error, 'Error fetching trip');
     }
   };
 
   createTrip = async (req: Request, res: Response): Promise<void> => {
     try {
       const newTrip = await tripService.createTrip(req.body);
-      res.status(201).json(newTrip);
+      res.status(201).location(`/api/v1/trips/${newTrip._id}`).json(newTrip);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error creating trip' });
+      handleError(res, error, 'Error creating trip');
     }
   };
 
@@ -48,14 +46,21 @@ export class TripController {
       }
       res.status(200).json(updatedTrip);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error updating trip' });
+      handleError(res, error, 'Error updating trip');
     }
   };
 
   deleteTrip = async (req: Request, res: Response): Promise<void> => {
-    res.status(200).json({ success: true,
-      data: `dummy response to the delete trip request with trip id ${req.params.tripId}` });
+    try {
+      const deletedTrip = await tripService.deleteTrip(req.params.tripId as string);
+      if (!deletedTrip) {
+        res.status(404).json({ message: 'Trip not found' });
+        return;
+      }
+      res.status(204).send();
+    } catch (error) {
+      handleError(res, error, 'Error deleting trip');
+    }
   };
 
 }

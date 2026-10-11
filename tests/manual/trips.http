@@ -1,39 +1,83 @@
 @baseUrl = http://localhost:3000/api/v1
+# a valid id that does not exist in the database
+@missing = 64b7f0f0f0f0f0f0f0f0f0f0
 
-### List trips
-GET {{baseUrl}}/trips HTTP/1.1
-
-### Create a trip
-# @name postATrip
+### Create a trip with valid data -> 201 Created
+# @name newTrip
 POST {{baseUrl}}/trips HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "Paris City Break",
-  "destination": "Paris",
-  "currency": "EUR",
-  "startDate": "2026-09-06",
-  "endDate": "2026-09-12"
+  "name": "Barcelona Weekend",
+  "destination": "Barcelona",
+  "currency": "eur",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-09"
 }
 
 ###
-@tripId = {{postATrip.response.body._id}}
+# id of the trip created above (send the request above first)
+@tripId = {{newTrip.response.body._id}}
 
-### Get one trip
+### Create a trip with invalid data (bad currency, end date before start date) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Barcelona Weekend",
+  "currency": "EUROS",
+  "startDate": "2026-11-09",
+  "endDate": "2026-11-06"
+}
+
+### List all trips -> 200
+GET {{baseUrl}}/trips HTTP/1.1
+
+### Get the trip created above -> 200
 GET {{baseUrl}}/trips/{{tripId}} HTTP/1.1
 
-### Replace/update a trip
+### Get a trip that does not exist (valid id, no such trip) -> 404
+GET {{baseUrl}}/trips/{{missing}} HTTP/1.1
+
+### Get a trip with a badly formed id -> 400
+GET {{baseUrl}}/trips/not-an-id HTTP/1.1
+
+### Replace the trip with valid data -> 200
 PUT {{baseUrl}}/trips/{{tripId}} HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "Paris and Disneyland",
-  "destination": "Paris",
+  "name": "Barcelona Long Weekend",
+  "destination": "Barcelona",
   "currency": "EUR",
-  "startDate": "2026-09-06",
-  "endDate": "2026-09-12"
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
 }
 
-### Delete a trip
-DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+### Replace a trip that does not exist -> 404
+PUT {{baseUrl}}/trips/{{missing}} HTTP/1.1
 Content-Type: application/json
+
+{
+  "name": "Ghost Trip",
+  "currency": "EUR",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
+}
+
+### Replace the trip with invalid data (name too short) -> 400
+PUT {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "x",
+  "currency": "EUR",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
+}
+
+### Delete the trip -> 204 No Content
+DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+
+### Delete the same trip again (already gone) -> 404
+DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
