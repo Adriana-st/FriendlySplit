@@ -1,6 +1,7 @@
 import { HydratedDocument } from 'mongoose';
 import { ITrip, TripInput, TripModel, TripQuery } from '../models/trips';
 import { buildSelect, buildSort, escapeRegex, paginate, toDate } from '../utils/helpers';
+import { notFound } from '../utils/errors';
 
 export class TripService {
 
@@ -59,6 +60,13 @@ export class TripService {
 
   async deleteTrip(id: string): Promise<ITrip | null> {
     return await TripModel.findByIdAndDelete(id).lean();
+  }
+
+    /** Loads a trip or throws a 404. Used by every nested resource (participants, expenses, balances). */
+  async requireTrip(id: string) {
+    const trip = await TripModel.findById(id).lean();
+    if (!trip) throw notFound('Trip');
+    return trip;
   }
 
 }

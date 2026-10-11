@@ -82,6 +82,7 @@ DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
 ### Delete the same trip again (already gone) -> 404
 DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
 
+
 ### FILTERING, SORTING, PROJECTION AND PAGING
 
 ### Filter by destination (partial, case-insensitive) -> 200
@@ -110,3 +111,96 @@ GET {{baseUrl}}/trips?sort=colour HTTP/1.1
 
 ### MongoDB operator injection attempt -> 400
 GET {{baseUrl}}/trips?destination[$ne]=x HTTP/1.1
+
+
+### PARTICIPANTS
+
+### Create a trip to add participants to -> 201 Created
+# @name brussels
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Brussels Getaway",
+  "destination": "Brussels",
+  "currency": "EUR",
+  "startDate": "2026-11-01",
+  "endDate": "2026-11-08"
+}
+
+###
+# id of the Brussels trip (send the POST above first)
+@brusselsTripId = {{brussels.response.body._id}}
+
+### Add a participant -> 201 Created
+# @name adri
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Adri",
+  "email": "adri@example.com"
+}
+
+###
+# id of the participant created above
+@adriId = {{adri.response.body._id}}
+
+### Add a second participant -> 201 Created
+# @name maria
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Maria",
+  "email": "maria@example.com"
+}
+
+###
+# id of the second participant
+@mariaId = {{maria.response.body._id}}
+
+### Add a participant with an email that is already on the trip -> 409 Conflict
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Adri again",
+  "email": "ADRI@example.com"
+}
+
+### Add a participant with an invalid email -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Broken",
+  "email": "not-an-email"
+}
+
+### List the participants of a trip that does not exist -> 404
+GET {{baseUrl}}/trips/{{missing}}/participants HTTP/1.1
+
+### List participants, filtered by name -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants?name=mar HTTP/1.1
+
+### List participants, sorted Z to A -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants?sort=-name HTTP/1.1
+
+### Get one participant -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{adriId}} HTTP/1.1
+
+### Replace a participant -> 200
+PUT {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Maria Silva",
+  "email": "maria@example.com"
+}
+
+### Delete a participant -> 204 No Content
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+
+### Delete the same participant again (already gone) -> 404
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
