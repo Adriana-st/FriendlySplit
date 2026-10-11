@@ -1,9 +1,7 @@
 import express, { Application, Request, Response } from "express";
 import tripRoutes from './routes/trips';
 
-const PORT = process.env.PORT || 3000;
-
-const app: Application = express();
+export const app: Application = express();
 
 app.use((req, _res, next) => {
     console.log(`${req.method} ${req.originalUrl}`);
@@ -11,12 +9,9 @@ app.use((req, _res, next) => {
 });
 
 app.use(express.json());
-app.use('/api/v1/trips', tripRoutes);
 
 app.get("/api/v1/health", async (_req: Request, res: Response) => {
     res.json({ status: "ok" });
 });
 
-app.listen(PORT, () => {
-    console.log("Server is running on port", PORT);
-});
+app.use('/api/v1/trips', tripRoutes);
