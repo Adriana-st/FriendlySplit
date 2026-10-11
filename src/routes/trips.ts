@@ -5,6 +5,7 @@ import { tripParamsZSchema } from '../models/common';
 import { tripQueryZSchema, tripZSchema } from '../models/trips';
 import participantRoutes from './participants';
 import expenseRoutes from './expenses';
+import balanceRoutes from './balances';
 
 const router = Router();
 const tripController = new TripController();
@@ -18,5 +19,6 @@ router.delete('/:tripId', validateParams(tripParamsZSchema), tripController.dele
 // Nested resources: everything under /trips/:tripId/...
 router.use('/:tripId/participants', participantRoutes);
 router.use('/:tripId/expenses', expenseRoutes);
+router.use('/:tripId/balances', balanceRoutes);
 
 export default router;

@@ -1,7 +1,9 @@
 import { HydratedDocument } from 'mongoose';
 import { ITrip, TripInput, TripModel, TripQuery } from '../models/trips';
 import { buildSelect, buildSort, escapeRegex, paginate, toDate } from '../utils/helpers';
-import { notFound } from '../utils/errors';
+import { ParticipantModel } from '../models/participants';
+import { ExpenseModel } from '../models/expenses';
+import { notFound, unprocessable } from '../utils/errors';
 
 export class TripService {
 
@@ -50,16 +52,39 @@ export class TripService {
     return await trip.save();
   }
 
-  async updateTrip(id: string, tripData: TripInput): Promise<ITrip | null> {
+  async updateTrip(id: string, tripData: TripInput) {
+    const existing = await TripModel.findById(id).lean();
+    if (!existing) return null;
+
+    const startDate = toDate(tripData.startDate);
+    const endDate = toDate(tripData.endDate);
+
+    // Business rule: the new dates must still contain every existing expense
+    const outside = await ExpenseModel.exists({
+      trip: id,
+      $or: [{ date: { $lt: startDate } }, { date: { $gt: endDate } }],
+    });
+    if (outside) {
+      throw unprocessable('The new trip dates would leave some existing expenses outside the trip');
+    }
+
     return await TripModel.findByIdAndUpdate(
       id,
-      { ...tripData, startDate: toDate(tripData.startDate), endDate: toDate(tripData.endDate) },
+      { ...tripData, startDate, endDate },
       { returnDocument: 'after', runValidators: true }
     ).lean();
   }
 
-  async deleteTrip(id: string): Promise<ITrip | null> {
-    return await TripModel.findByIdAndDelete(id).lean();
+  /** Deletes the trip together with its participants and expenses. */
+  async deleteTrip(id: string) {
+    const existing = await TripModel.findById(id).lean();
+    if (!existing) return null;
+
+    await ExpenseModel.deleteMany({ trip: id });
+    await ParticipantModel.deleteMany({ trip: id });
+    await TripModel.findByIdAndDelete(id);
+
+    return existing;
   }
 
     /** Loads a trip or throws a 404. Used by every nested resource (participants, expenses, balances). */

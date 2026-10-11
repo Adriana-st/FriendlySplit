@@ -325,3 +325,27 @@ Content-Type: application/json
 
 ### Delete a participant who is used by an expense -> 409 Conflict
 DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{adriId}} HTTP/1.1
+
+
+### BALANCES, TRIP DATES AND CASCADE DELETE
+
+### Who owes whom -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/balances HTTP/1.1
+
+### Balances of a trip that does not exist -> 404
+GET {{baseUrl}}/trips/{{missing}}/balances HTTP/1.1
+
+### Shrink the trip so the 3 November dinner falls outside it -> 422
+PUT {{baseUrl}}/trips/{{brusselsTripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Brussels City Break",
+  "destination": "Brussels",
+  "currency": "EUR",
+  "startDate": "2026-11-04",
+  "endDate": "2026-11-08"
+}
+
+### Delete the trip: its participants and expenses go with it -> 204 No Content
+DELETE {{baseUrl}}/trips/{{brusselsTripId}} HTTP/1.1
