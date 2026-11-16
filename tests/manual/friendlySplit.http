@@ -1,0 +1,588 @@
+@baseUrl = http://localhost:3000/api/v1
+# a valid id that does not exist in the database
+@missing = 64b7f0f0f0f0f0f0f0f0f0f0
+
+### Create a trip with valid data -> 201 Created
+# @name newTrip
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Italy Adventure",
+  "destination": "Rome, Florence, Venice",
+  "currency": "eur",
+  "startDate": "2026-08-12",
+  "endDate": "2026-08-24"
+}
+
+###
+# id of the trip created above (send the request above first)
+@tripId = {{newTrip.response.body._id}}
+
+### Create a trip with invalid data (bad currency, end date before start date) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Barcelona Weekend",
+  "currency": "EUROS",
+  "startDate": "2026-11-09",
+  "endDate": "2026-11-06"
+}
+
+### List all trips -> 200
+GET {{baseUrl}}/trips HTTP/1.1
+
+### Get the trip created above -> 200
+GET {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+
+### Get a trip that does not exist (valid id, no such trip) -> 404
+GET {{baseUrl}}/trips/{{missing}} HTTP/1.1
+
+### Get a trip with a badly formed id -> 400
+GET {{baseUrl}}/trips/not-an-id HTTP/1.1
+
+### Replace the trip with valid data -> 200
+PUT {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Barcelona Long Weekend",
+  "destination": "Barcelona",
+  "currency": "EUR",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
+}
+
+### Replace a trip that does not exist -> 404
+PUT {{baseUrl}}/trips/{{missing}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Ghost Trip",
+  "currency": "EUR",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
+}
+
+### Replace the trip with invalid data (name too short) -> 400
+PUT {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "x",
+  "currency": "EUR",
+  "startDate": "2026-11-06",
+  "endDate": "2026-11-10"
+}
+
+### Delete the trip -> 204 No Content
+DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+
+### Delete the same trip again (already gone) -> 404
+DELETE {{baseUrl}}/trips/{{tripId}} HTTP/1.1
+
+
+### FILTERING, SORTING, PROJECTION AND PAGING
+
+### Filter by destination (partial, case-insensitive) -> 200
+GET {{baseUrl}}/trips?destination=lis HTTP/1.1
+
+### Filter by currency -> 200
+GET {{baseUrl}}/trips?currency=GBP HTTP/1.1
+
+### Filter by start date range -> 200
+GET {{baseUrl}}/trips?startsAfter=2026-08-01&startsBefore=2026-10-10 HTTP/1.1
+
+### Sort by name, A to Z -> 200
+GET {{baseUrl}}/trips?sort=name HTTP/1.1
+
+### Sort by name, Z to A -> 200
+GET {{baseUrl}}/trips?sort=-name HTTP/1.1
+
+### Projection: only the name and currency fields -> 200
+GET {{baseUrl}}/trips?fields=name,currency HTTP/1.1
+
+### Paging: 2 trips per page, second page -> 200
+GET {{baseUrl}}/trips?sort=name&limit=2&page=2 HTTP/1.1
+
+### Unknown sort field -> 400
+GET {{baseUrl}}/trips?sort=colour HTTP/1.1
+
+### MongoDB operator injection attempt -> 400
+GET {{baseUrl}}/trips?destination[$ne]=x HTTP/1.1
+
+
+### PARTICIPANTS
+
+### Create a trip to add participants to -> 201 Created
+# @name brussels
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Brussels Getaway",
+  "destination": "Brussels",
+  "currency": "EUR",
+  "startDate": "2026-11-01",
+  "endDate": "2026-11-08"
+}
+
+###
+# id of the Brussels trip (send the POST above first)
+@brusselsTripId = {{brussels.response.body._id}}
+
+### Add a participant -> 201 Created
+# @name adri
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Adri",
+  "email": "adri@example.com"
+}
+
+###
+# id of the participant created above
+@adriId = {{adri.response.body._id}}
+
+### Add a second participant -> 201 Created
+# @name maria
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Maria",
+  "email": "maria@example.com"
+}
+
+###
+# id of the second participant
+@mariaId = {{maria.response.body._id}}
+
+### Add a participant with an email that is already on the trip -> 409 Conflict
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Adri again",
+  "email": "ADRI@example.com"
+}
+
+### Add a participant with an invalid email -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Broken",
+  "email": "not-an-email"
+}
+
+### List the participants of a trip that does not exist -> 404
+GET {{baseUrl}}/trips/{{missing}}/participants HTTP/1.1
+
+### List participants, filtered by name -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants?name=mar HTTP/1.1
+
+### List participants, sorted Z to A -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants?sort=-name HTTP/1.1
+
+### Get one participant -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{adriId}} HTTP/1.1
+
+### Replace a participant -> 200
+PUT {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Maria Silva",
+  "email": "maria@example.com"
+}
+
+### Delete a participant -> 204 No Content
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+
+### Delete the same participant again (already gone) -> 404
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{mariaId}} HTTP/1.1
+
+
+### EXPENSES
+
+### Create an expense with an explicit split (60.00 EUR, 20.00 + 40.00) -> 201 Created
+# @name dinner
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Seafood dinner",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03",
+  "splits": [
+    { "participant": "{{adriId}}", "share": 2000 },
+    { "participant": "{{mariaId}}", "share": 4000 }
+  ]
+}
+
+###
+# id of the expense created above
+@dinnerId = {{dinner.response.body._id}}
+
+### Create an expense with no splits (shared equally) -> 201 Created
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{mariaId}}",
+  "description": "Airport taxi",
+  "amount": 3001,
+  "category": "transport",
+  "date": "2026-11-01"
+}
+
+### Create an expense whose shares do not add up to the amount -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Bad split",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03",
+  "splits": [{ "participant": "{{adriId}}", "share": 1 }]
+}
+
+### Create an expense with a decimal amount instead of whole cents -> 400
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Decimal",
+  "amount": 10.5,
+  "category": "food",
+  "date": "2026-11-03"
+}
+
+### Create an expense paid by someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{missing}}",
+  "description": "Stranger paid",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-11-03"
+}
+
+### Create an expense dated outside the trip -> 422
+POST {{baseUrl}}/trips/{{brusselsTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Too late",
+  "amount": 1000,
+  "category": "other",
+  "date": "2027-01-01"
+}
+
+### Filter expenses: food only -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?category=food HTTP/1.1
+
+### Filter expenses: 50.00 or more (amounts are in cents) -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?minAmount=5000 HTTP/1.1
+
+### Filter expenses: date range -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?from=2026-11-02&to=2026-11-05 HTTP/1.1
+
+### Search expense descriptions for "taxi" -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?search=taxi HTTP/1.1
+
+### Sort by biggest amount, showing only description and amount -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?sort=-amount&fields=description,amount HTTP/1.1
+
+### Filter with minAmount greater than maxAmount -> 400
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses?minAmount=9000&maxAmount=100 HTTP/1.1
+
+### Get one expense -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/expenses/{{dinnerId}} HTTP/1.1
+
+### Replace an expense -> 200
+PUT {{baseUrl}}/trips/{{brusselsTripId}}/expenses/{{dinnerId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{adriId}}",
+  "description": "Seafood dinner (updated)",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-11-03"
+}
+
+### Delete a participant who is used by an expense -> 409 Conflict
+DELETE {{baseUrl}}/trips/{{brusselsTripId}}/participants/{{adriId}} HTTP/1.1
+
+
+### BALANCES, TRIP DATES AND CASCADE DELETE
+
+### Who owes whom -> 200
+GET {{baseUrl}}/trips/{{brusselsTripId}}/balances HTTP/1.1
+
+### Balances of a trip that does not exist -> 404
+GET {{baseUrl}}/trips/{{missing}}/balances HTTP/1.1
+
+### Shrink the trip so the 3 November dinner falls outside it -> 422
+PUT {{baseUrl}}/trips/{{brusselsTripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Brussels City Break",
+  "destination": "Brussels",
+  "currency": "EUR",
+  "startDate": "2026-11-04",
+  "endDate": "2026-11-08"
+}
+
+### Delete the trip: its participants and expenses go with it -> 204 No Content
+DELETE {{baseUrl}}/trips/{{brusselsTripId}} HTTP/1.1
+
+
+### SECURITY
+
+### Create a trip with an unknown field (no mass assignment) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Hacked",
+  "currency": "EUR",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-08",
+  "isAdmin": true
+}
+
+
+### Operator injection in a query string -> 400
+GET {{baseUrl}}/trips?currency[$ne]=EUR HTTP/1.1
+
+### Create a trip with malformed JSON (safe error message) -> 400
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+# { "name": "broken
+
+### Get a trip with a bad id in the path -> 400
+GET {{baseUrl}}/trips/not-an-id HTTP/1.1
+
+
+### SEEDED DATA (run npm run seed first)
+
+# fixed ids from test-data/friendlysplit-testdata.json
+@lisbonId = 64f000000000000000000001
+@donegalId = 64f000000000000000000002
+
+### Lisbon expenses over 50.00, biggest first -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/expenses?minAmount=5000&sort=-amount HTTP/1.1
+
+### Lisbon food expenses only -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/expenses?category=food HTTP/1.1
+
+### Lisbon balances: who owes whom -> 200
+GET {{baseUrl}}/trips/{{lisbonId}}/balances HTTP/1.1
+
+### Same email, different trip: Adri is on Donegal as well -> 200
+GET {{baseUrl}}/trips/{{donegalId}}/participants HTTP/1.1
+
+### SPLITTING RULES
+
+### Create a trip to test splitting -> 201 Created
+# @name splitTrip
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Dublin Weekend",
+  "destination": "Dublin",
+  "currency": "EUR",
+  "startDate": "2026-12-04",
+  "endDate": "2026-12-06"
+}
+
+###
+@splitTripId = {{splitTrip.response.body._id}}
+
+### Add the first participant -> 201 Created
+# @name splitAdri
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Adri", "email": "adri@example.com" }
+
+###
+@splitAdriId = {{splitAdri.response.body._id}}
+
+### Add the second participant -> 201 Created
+# @name splitMaria
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Maria", "email": "maria@example.com" }
+
+###
+@splitMariaId = {{splitMaria.response.body._id}}
+
+### Add the third participant -> 201 Created
+# @name splitTom
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Tom", "email": "tom@example.com" }
+
+###
+@splitTomId = {{splitTom.response.body._id}}
+
+### Equal split: 10.00 between 3 people, no splits sent (the spare cent goes to the first person) -> 201
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Dinner",
+  "amount": 1000,
+  "category": "food",
+  "date": "2026-12-05"
+}
+
+### Custom split: 60.00 shared by only two of the three people -> 201
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitMariaId}}",
+  "description": "Lunch",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 2000 },
+    { "participant": "{{splitMariaId}}", "share": 4000 }
+  ]
+}
+
+### Shares add up to less than the amount -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Bad shares",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 2000 },
+    { "participant": "{{splitMariaId}}", "share": 3000 }
+  ]
+}
+
+### The same person appears twice in the splits -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Twice",
+  "amount": 1000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 500 },
+    { "participant": "{{splitAdriId}}", "share": 500 }
+  ]
+}
+
+### Amount of zero -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Nothing",
+  "amount": 0,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### Amount with a decimal part instead of whole cents -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Decimal",
+  "amount": 10.5,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### A split with someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Stranger in the split",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 500 },
+    { "participant": "{{missing}}", "share": 500 }
+  ]
+}
+
+### Paid by someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{missing}}",
+  "description": "Stranger paid",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### Expense dated outside the trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Too late",
+  "amount": 1000,
+  "category": "other",
+  "date": "2027-01-01"
+}
+
+### Who owes whom after the two valid expenses -> 200
+GET {{baseUrl}}/trips/{{splitTripId}}/balances HTTP/1.1
+
+### Delete a participant who paid for an expense -> 409 Conflict
+DELETE {{baseUrl}}/trips/{{splitTripId}}/participants/{{splitMariaId}} HTTP/1.1
+
+### Shrink the trip so the expenses on 5 December fall outside it -> 422
+PUT {{baseUrl}}/trips/{{splitTripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Dublin Weekend",
+  "destination": "Dublin",
+  "currency": "EUR",
+  "startDate": "2026-12-06",
+  "endDate": "2026-12-06"
+}

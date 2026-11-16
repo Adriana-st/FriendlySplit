@@ -1,0 +1,24 @@
+{
+  "trips": [
+    {"_id": "64f000000000000000000001", "name": "Lisbon City Break", "destination": "Lisbon", "currency": "EUR", "startDate": "2026-07-01", "endDate": "2026-07-08"},
+    {"_id": "64f000000000000000000002", "name": "Wild Atlantic Way Road Trip", "destination": "Donegal", "currency": "EUR", "startDate": "2026-09-04", "endDate": "2026-09-07"},
+    {"_id": "64f000000000000000000003", "name": "Edinburgh Festival Weekend", "destination": "Edinburgh", "currency": "GBP", "startDate": "2026-08-10", "endDate": "2026-08-15"}
+  ],
+  "participants": [
+    {"_id": "64f00000000000000000a001", "trip": "64f000000000000000000001", "name": "Adri", "email": "adri@example.com"},
+    {"_id": "64f00000000000000000a002", "trip": "64f000000000000000000001", "name": "Maria", "email": "maria@example.com"},
+    {"_id": "64f00000000000000000a003", "trip": "64f000000000000000000001", "name": "Tom", "email": "tom@example.com"},
+    {"_id": "64f00000000000000000a004", "trip": "64f000000000000000000002", "name": "Adri", "email": "adri@example.com"},
+    {"_id": "64f00000000000000000a005", "trip": "64f000000000000000000002", "name": "Sean", "email": "sean@example.com"}
+  ],
+  "expenses": [
+    {"_id": "64f00000000000000000c001", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a001", "description": "Hotel Alfama (4 nights)", "amount": 54000, "category": "accommodation", "date": "2026-07-01", "splits": [{"participant": "64f00000000000000000a001", "share": 18000}, {"participant": "64f00000000000000000a002", "share": 18000}, {"participant": "64f00000000000000000a003", "share": 18000}]},
+    {"_id": "64f00000000000000000c002", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a002", "description": "Airport transfer", "amount": 3600, "category": "transport", "date": "2026-07-01", "splits": [{"participant": "64f00000000000000000a001", "share": 1200}, {"participant": "64f00000000000000000a002", "share": 1200}, {"participant": "64f00000000000000000a003", "share": 1200}]},
+    {"_id": "64f00000000000000000c003", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a003", "description": "Pastel de nata tasting", "amount": 1350, "category": "food", "date": "2026-07-02", "splits": [{"participant": "64f00000000000000000a001", "share": 450}, {"participant": "64f00000000000000000a002", "share": 450}, {"participant": "64f00000000000000000a003", "share": 450}]},
+    {"_id": "64f00000000000000000c004", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a001", "description": "Tram 28 and metro passes", "amount": 2400, "category": "transport", "date": "2026-07-02", "splits": [{"participant": "64f00000000000000000a001", "share": 800}, {"participant": "64f00000000000000000a002", "share": 800}, {"participant": "64f00000000000000000a003", "share": 800}]},
+    {"_id": "64f00000000000000000c005", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a002", "description": "Seafood dinner", "amount": 8750, "category": "food", "date": "2026-07-03", "splits": [{"participant": "64f00000000000000000a001", "share": 2917}, {"participant": "64f00000000000000000a002", "share": 2917}, {"participant": "64f00000000000000000a003", "share": 2916}]},
+    {"_id": "64f00000000000000000c006", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a003", "description": "Sintra day trip tickets", "amount": 6000, "category": "activities", "date": "2026-07-05", "splits": [{"participant": "64f00000000000000000a001", "share": 3000}, {"participant": "64f00000000000000000a003", "share": 3000}]},
+    {"_id": "64f00000000000000000c007", "trip": "64f000000000000000000001", "paidBy": "64f00000000000000000a001", "description": "Farewell dinner", "amount": 12000, "category": "food", "date": "2026-07-07", "splits": [{"participant": "64f00000000000000000a001", "share": 4000}, {"participant": "64f00000000000000000a002", "share": 4000}, {"participant": "64f00000000000000000a003", "share": 4000}]},
+    {"_id": "64f00000000000000000c008", "trip": "64f000000000000000000002", "paidBy": "64f00000000000000000a004", "description": "Fuel", "amount": 7500, "category": "transport", "date": "2026-09-04", "splits": [{"participant": "64f00000000000000000a004", "share": 3750}, {"participant": "64f00000000000000000a005", "share": 3750}]}
+  ]
+}
