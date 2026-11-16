@@ -396,3 +396,193 @@ GET {{baseUrl}}/trips/{{lisbonId}}/balances HTTP/1.1
 
 ### Same email, different trip: Adri is on Donegal as well -> 200
 GET {{baseUrl}}/trips/{{donegalId}}/participants HTTP/1.1
+
+### SPLITTING RULES
+
+### Create a trip to test splitting -> 201 Created
+# @name splitTrip
+POST {{baseUrl}}/trips HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Dublin Weekend",
+  "destination": "Dublin",
+  "currency": "EUR",
+  "startDate": "2026-12-04",
+  "endDate": "2026-12-06"
+}
+
+###
+@splitTripId = {{splitTrip.response.body._id}}
+
+### Add the first participant -> 201 Created
+# @name splitAdri
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Adri", "email": "adri@example.com" }
+
+###
+@splitAdriId = {{splitAdri.response.body._id}}
+
+### Add the second participant -> 201 Created
+# @name splitMaria
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Maria", "email": "maria@example.com" }
+
+###
+@splitMariaId = {{splitMaria.response.body._id}}
+
+### Add the third participant -> 201 Created
+# @name splitTom
+POST {{baseUrl}}/trips/{{splitTripId}}/participants HTTP/1.1
+Content-Type: application/json
+
+{ "name": "Tom", "email": "tom@example.com" }
+
+###
+@splitTomId = {{splitTom.response.body._id}}
+
+### Equal split: 10.00 between 3 people, no splits sent (the spare cent goes to the first person) -> 201
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Dinner",
+  "amount": 1000,
+  "category": "food",
+  "date": "2026-12-05"
+}
+
+### Custom split: 60.00 shared by only two of the three people -> 201
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitMariaId}}",
+  "description": "Lunch",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 2000 },
+    { "participant": "{{splitMariaId}}", "share": 4000 }
+  ]
+}
+
+### Shares add up to less than the amount -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Bad shares",
+  "amount": 6000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 2000 },
+    { "participant": "{{splitMariaId}}", "share": 3000 }
+  ]
+}
+
+### The same person appears twice in the splits -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Twice",
+  "amount": 1000,
+  "category": "food",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 500 },
+    { "participant": "{{splitAdriId}}", "share": 500 }
+  ]
+}
+
+### Amount of zero -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Nothing",
+  "amount": 0,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### Amount with a decimal part instead of whole cents -> 400
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Decimal",
+  "amount": 10.5,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### A split with someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Stranger in the split",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-12-05",
+  "splits": [
+    { "participant": "{{splitAdriId}}", "share": 500 },
+    { "participant": "{{missing}}", "share": 500 }
+  ]
+}
+
+### Paid by someone who is not on this trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{missing}}",
+  "description": "Stranger paid",
+  "amount": 1000,
+  "category": "other",
+  "date": "2026-12-05"
+}
+
+### Expense dated outside the trip -> 422
+POST {{baseUrl}}/trips/{{splitTripId}}/expenses HTTP/1.1
+Content-Type: application/json
+
+{
+  "paidBy": "{{splitAdriId}}",
+  "description": "Too late",
+  "amount": 1000,
+  "category": "other",
+  "date": "2027-01-01"
+}
+
+### Who owes whom after the two valid expenses -> 200
+GET {{baseUrl}}/trips/{{splitTripId}}/balances HTTP/1.1
+
+### Delete a participant who paid for an expense -> 409 Conflict
+DELETE {{baseUrl}}/trips/{{splitTripId}}/participants/{{splitMariaId}} HTTP/1.1
+
+### Shrink the trip so the expenses on 5 December fall outside it -> 422
+PUT {{baseUrl}}/trips/{{splitTripId}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Dublin Weekend",
+  "destination": "Dublin",
+  "currency": "EUR",
+  "startDate": "2026-12-06",
+  "endDate": "2026-12-06"
+}
