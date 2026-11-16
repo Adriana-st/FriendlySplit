@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { TripController } from '../controllers/trips';
-import { validate, validateParams, validateQuery } from '../middleware/validate.middleware';
-import { tripParamsZSchema } from '../models/common';
+import { validate, validateIds, validateQuery } from '../middleware/validate.middleware';
 import { tripQueryZSchema, tripZSchema } from '../models/trips';
 import participantRoutes from './participants';
 import expenseRoutes from './expenses';
@@ -11,10 +10,10 @@ const router = Router();
 const tripController = new TripController();
 
 router.get('/', validateQuery(tripQueryZSchema), tripController.getTrips);
-router.get('/:tripId', validateParams(tripParamsZSchema), tripController.getTripById);
+router.get('/:tripId', validateIds, tripController.getTripById);
 router.post('/', validate(tripZSchema), tripController.createTrip);
-router.put('/:tripId', validateParams(tripParamsZSchema), validate(tripZSchema), tripController.updateTrip);
-router.delete('/:tripId', validateParams(tripParamsZSchema), tripController.deleteTrip);
+router.put('/:tripId', validateIds, validate(tripZSchema), tripController.updateTrip);
+router.delete('/:tripId', validateIds, tripController.deleteTrip);
 
 // Nested resources: everything under /trips/:tripId/...
 router.use('/:tripId/participants', participantRoutes);

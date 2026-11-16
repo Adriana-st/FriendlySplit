@@ -27,21 +27,14 @@ export const validate = (schema: z.ZodType) => (
   next();
 };
 
-/** Validates the ids in the URL (/trips/:tripId/...). */
-export const validateParams = (schema: z.ZodType) => (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-
-  const validation = schema.safeParse(req.params);
-
-  if (!validation.success) {
-    res.status(400).json({
-      message: 'Validation failed',
-      errors: formatIssues(validation.error)
-    });
-    return;
+// Checks every id in the URL (tripId, participantId, expenseId)
+// If any is not a valid 24 character hex string, returns 400 with a message.
+export const validateIds = (req: Request, res: Response, next: NextFunction): void => {
+  for (const value of Object.values(req.params)) {
+    if (!/^[0-9a-fA-F]{24}$/.test(String(value))) {
+      res.status(400).json({ message: `${value} is not a valid id` });
+      return;
+    }
   }
 
   next();

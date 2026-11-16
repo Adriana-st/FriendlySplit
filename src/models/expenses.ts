@@ -1,6 +1,9 @@
 import { Schema, Types, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, objectIdZSchema, paginationZShape } from './common';
+import { fieldsZSchema, paginationZShape } from './common';
+
+// A MongoDB id: 24 characters, each 0-9 or a-f
+const objectIdZSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Must be a valid 24 character id');
 
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'accommodation', 'activities', 'other'] as const;
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];

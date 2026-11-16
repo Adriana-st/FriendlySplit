@@ -1,13 +1,5 @@
 import { z } from 'zod';
 
-/** A MongoDB ObjectId as a 24 character hex string. */
-export const objectIdZSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Must be a valid 24 character id');
-
-/** Path parameters used by the routes. */
-export const tripParamsZSchema = z.object({ tripId: objectIdZSchema });
-export const participantParamsZSchema = tripParamsZSchema.extend({ participantId: objectIdZSchema });
-export const expenseParamsZSchema = tripParamsZSchema.extend({ expenseId: objectIdZSchema });
-
 /** ?page=1&limit=20 - query strings arrive as text, so they are coerced to numbers. */
 export const paginationZShape = {
   page: z.coerce.number().int().min(1).default(1),
