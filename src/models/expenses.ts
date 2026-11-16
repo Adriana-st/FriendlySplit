@@ -1,6 +1,6 @@
 import { Schema, Types, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, isoDateZSchema, objectIdZSchema, paginationZShape } from './common';
+import { fieldsZSchema, objectIdZSchema, paginationZShape } from './common';
 
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'accommodation', 'activities', 'other'] as const;
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
@@ -158,7 +158,7 @@ export const expenseZSchema = z
       .positive('Amount must be greater than zero')
       .max(100_000_000, 'Amount is too large'),
     category: z.enum(EXPENSE_CATEGORIES),
-    date: isoDateZSchema,
+    date: z.iso.date('Must be a date like 2026-07-03'),
     splits: z.array(splitZSchema).min(1).max(50).optional(),
   })
   .superRefine((expense, ctx) => {
@@ -195,8 +195,8 @@ export const expenseQueryZSchema = z
     search: z.string().trim().min(1).max(60).optional(), // partial match on the description
     minAmount: z.coerce.number().int().min(0).optional(),
     maxAmount: z.coerce.number().int().min(0).optional(),
-    from: isoDateZSchema.optional(), // expenses on or after this date
-    to: isoDateZSchema.optional(), // expenses on or before this date
+    from: z.iso.date().optional(), // expenses on or after this date
+    to: z.iso.date().optional(), // expenses on or before this date
     sort: z.enum(EXPENSE_SORT_FIELDS).default('-date'),
     fields: fieldsZSchema(EXPENSE_FIELDS),
     ...paginationZShape,

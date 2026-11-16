@@ -1,13 +1,22 @@
 import { Schema, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, isoDateZSchema, paginationZShape } from './common';
+import { fieldsZSchema, paginationZShape } from './common';
 
+// What a trip looks like in the database
 export interface ITrip {
   name: string;
   destination?: string;
   currency: string;
   startDate: Date;
   endDate: Date;
+}
+// What the client sends in the body of POST and PUT
+export interface TripInput {
+  name: string;
+  destination?: string;
+  currency: string;
+  startDate: string;
+  endDate: string;
 }
 
 // A Trip is the top-level entity. Participants and Expenses both belong to one Trip.
@@ -77,8 +86,9 @@ export const TripModel = model<ITrip>('Trip', tripSchema);
  *               format: date-time
  */
 
+// Zod schema for validating trip input from the client
 export const tripZSchema = z
-  .strictObject({
+  .object({
     name: z.string().trim().min(3, 'Name must be at least 3 characters').max(60),
     destination: z.string().trim().min(1).max(80).optional(),
     currency: z
@@ -86,14 +96,15 @@ export const tripZSchema = z
       .trim()
       .toUpperCase()
       .regex(/^[A-Z]{3}$/, 'Currency must be a 3 letter code such as EUR'),
-    startDate: isoDateZSchema,
-    endDate: isoDateZSchema,
+    startDate: z.iso.date('Must be a date like 2026-07-01'),
+    endDate: z.iso.date('Must be a date like 2026-07-08'),
   })
+  // Validate that endDate is not before startDate
   .refine((trip) => trip.endDate >= trip.startDate, {
     message: 'endDate must not be before startDate',
     path: ['endDate'],
   });
-export type TripInput = z.infer<typeof tripZSchema>;
+
 
 export const TRIP_SORT_FIELDS = ['startDate', '-startDate', 'name', '-name', 'createdAt', '-createdAt'] as const;
 export const TRIP_FIELDS = ['name', 'destination', 'currency', 'startDate', 'endDate', 'createdAt', 'updatedAt'] as const;
@@ -102,8 +113,8 @@ export const TRIP_FIELDS = ['name', 'destination', 'currency', 'startDate', 'end
 export const tripQueryZSchema = z.strictObject({
   destination: z.string().trim().min(1).max(80).optional(), // partial, case-insensitive match
   currency: z.string().trim().length(3).toUpperCase().optional(),
-  startsAfter: isoDateZSchema.optional(), // trips starting on or after this date
-  startsBefore: isoDateZSchema.optional(), // trips starting on or before this date
+  startsAfter: z.iso.date().optional(), // trips starting on or after this date
+  startsBefore: z.iso.date().optional(), // trips starting on or before this date
   sort: z.enum(TRIP_SORT_FIELDS).default('-startDate'),
   fields: fieldsZSchema(TRIP_FIELDS),
   ...paginationZShape,

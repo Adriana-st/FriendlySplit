@@ -60,10 +60,11 @@ describe('Test Trip Validation', () => {
             { ...validTrip, "endDate": "2026-06-01" })).toThrow();
     });
 
-    it('should fail for an unknown property', () => {
+    it('should remove an unknown property instead of saving it', () => {
 
-        expect(() => tripZSchema.parse(
-            { ...validTrip, "isAdmin": true })).toThrow();
+        const parsed = tripZSchema.parse({ ...validTrip, "isAdmin": true });
+
+        expect(parsed).not.toHaveProperty('isAdmin');
     });
 });
 
