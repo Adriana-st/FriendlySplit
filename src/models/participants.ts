@@ -1,15 +1,22 @@
 import { Schema, Types, model } from 'mongoose';
 import { z } from 'zod';
 
+// What a participant looks like in the database. The trip field is a reference to the Trip model
 export interface IParticipant {
   trip: Types.ObjectId;
   name: string;
   email: string;
 }
 
+// What the client sends when creating or updating a participant. (The trip field is not included because it is part of the URL)
+export interface ParticipantInput {
+  name: string;
+  email: string;
+}
+
 /**
  * A Participant is a person on one Trip.
- * At the moment it stores just a name and email; later it can reference a real user account.
+ * At the moment it stores just a name and email
  */
 const participantSchema = new Schema<IParticipant>(
   {
@@ -34,7 +41,6 @@ export const ParticipantModel = model<IParticipant>('Participant', participantSc
  *       required:
  *         - name
  *         - email
- *       additionalProperties: false
  *       properties:
  *         name:
  *           type: string
@@ -65,25 +71,25 @@ export const ParticipantModel = model<IParticipant>('Participant', participantSc
  *               format: date-time
  */
 
-/** Body for POST and PUT on /trips/:tripId/participants. */
-export const participantZSchema = z.strictObject({
+// Validation for the body of POST and PUT on /trips/:tripId/participants
+export const participantZSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(60),
-  email: z.string().trim().toLowerCase().email('Must be a valid email address').max(100),
+  email: z.string().trim().toLowerCase().pipe(z.email('Must be a valid email address').max(100)),
 });
-export type ParticipantInput = z.infer<typeof participantZSchema>;
 
 export const PARTICIPANT_SORT_FIELDS = ['name', '-name', 'createdAt', '-createdAt'] as const;
 // Fields the client is allowed to ask for with ?fields=name,email. If the client asks for a field not in this list, it is rejected.
 export const PARTICIPANT_FIELDS = ['trip', 'name', 'email', 'createdAt', 'updatedAt'];
 
+// Query string for GET /trips/:tripId/participants. strictObject rejects any parameter that is not listed.
 export const participantQueryZSchema = z.strictObject({
-  name: z.string().trim().min(1).max(60).optional(), 
+  name: z.string().trim().min(1).max(60).optional(),  // the service searches for this text inside the name, ignoring case
   sort: z.enum(PARTICIPANT_SORT_FIELDS).default('name'),
   fields: z
     .string()
     .refine((value) => value.split(',').every((field) => PARTICIPANT_FIELDS.includes(field)), 'fields can only contain: ' + PARTICIPANT_FIELDS.join(', '))
     .optional(),
-  //Paging. Query strings are always text, so coerce turns "2" into the number 2
+  // Paging. Query strings are always text, so coerce turns "2" into the number 2
   page: z.coerce.number().int().min(1).default(1),    // page number, starting at 1
   limit: z.coerce.number().int().min(1).max(100).default(20), // number of participants per page
 });

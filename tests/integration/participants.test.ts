@@ -28,11 +28,20 @@ describe('POST /api/v1/trips/:tripId/participants', () => {
     ['email is missing', { name: 'Adri' }],
     ['email is not a valid address', { name: 'Adri', email: 'not-an-email' }],
     ['name is empty', { name: '   ', email: 'a@example.com' }],
-    ['an unknown property is sent', { name: 'Adri', email: 'a@example.com', role: 'admin' }],
   ])('rejects the participant when %s (400)', async (_label, body) => {
     const trip = await makeTrip();
     const res = await request(app).post(`/api/v1/trips/${trip._id}/participants`).send(body);
     expect(res.status).toBe(400);
+  });
+
+  it('ignores unknown properties and does not save them (201)', async () => {
+    const trip = await makeTrip();
+    const res = await request(app)
+      .post(`/api/v1/trips/${trip._id}/participants`)
+      .send({ name: 'Adri', email: 'a@example.com', role: 'admin' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).not.toHaveProperty('role');
   });
 
   it('returns 409 when the same email is added twice to one trip', async () => {
