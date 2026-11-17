@@ -58,4 +58,10 @@ describe('General API behaviour', () => {
             ])
         );
     });
+
+    it('allows the Angular app to call the API (CORS)', async () => {
+        const res = await request(app).get('/api/v1/health').set('Origin', 'http://localhost:4200');
+
+        expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
+    });
 });

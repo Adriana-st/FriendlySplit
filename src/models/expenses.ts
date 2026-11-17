@@ -161,7 +161,7 @@ export const ExpenseModel = model<IExpense>('Expense', expenseSchema);
  */
 
 // Validation for one share in "splits"
-const splitZSchema = z.strictObject({
+const splitZSchema = z.object({
   participant: objectIdZSchema,
   share: z.number().int('Share must be a whole number of cents').min(0),
 });

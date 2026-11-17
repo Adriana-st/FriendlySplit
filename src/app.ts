@@ -6,11 +6,13 @@ import tripRoutes from './routes/trips';
 import { logger } from "./middleware/logging.middleware";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 import { env } from "./config/env";
-import swaggerUi from 'swagger-ui-express';
+import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import cors from "cors";
 
 export const app: Application = express();
 app.use(logger);
+app.use(cors({ origin: 'http://localhost:4200' })); // only the Angular app may call this API from a browser
 app.use(helmet());                        // secure HTTP headers
 app.use(express.json({ limit: '10kb' })); // refuse huge request bodies
 
