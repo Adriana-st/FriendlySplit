@@ -31,56 +31,85 @@ export interface Settlement {
   amount: number;
 }
 
+// Someone who still has money to pay or to receive while we work out the settlements
+interface PersonLeft {
+  id: string;
+  name: string;
+  left: number; // how much they still have to pay (debtor) or receive (creditor)
+}
+
 /**
- * Works out who is owed what for a trip, plus a short list of payments that settles everyone up.
+ * Works out what each person paid and owes, plus a list of payments that settles everyone up.
  * This is a pure function (no database access) so it is easy to unit test.
  */
 export function computeBalances(
   participants: BalanceParticipant[],
   expenses: BalanceExpense[]
 ): { balances: Balance[]; settlements: Settlement[] } {
-  const totals = new Map<string, Balance>(
-    participants.map((p) => [p.id, { participant: p.id, name: p.name, paid: 0, owed: 0, net: 0 }])
-  );
+  // Start at zero for each participant
+  const balances: Balance[] = [];
+  for (const p of participants) {
+    balances.push({ participant: p.id, name: p.name, paid: 0, owed: 0, net: 0 });
+  }
 
+  // Go through each expense: add what the payer paid, and each person's share to what they owe. 
   for (const expense of expenses) {
-    const payer = totals.get(expense.paidBy);
-    if (payer) payer.paid += expense.amount;
-    for (const split of expense.splits) {
-      const person = totals.get(split.participant);
-      if (person) person.owed += split.share;
+    for (const balance of balances) {
+      if (balance.participant === expense.paidBy) {
+        balance.paid += expense.amount;
+      }
+      for (const split of expense.splits) {
+        if (split.participant === balance.participant) {
+          balance.owed += split.share;
+        }
+      }
     }
   }
 
-  const balances = [...totals.values()];
-  for (const balance of balances) balance.net = balance.paid - balance.owed;
+  // Net = paid - owed
+  for (const balance of balances) {
+    balance.net = balance.paid - balance.owed;
+  }
 
-  // Greedy settlement: the person who owes most pays the person who is owed most.
-  const debtors = balances.filter((b) => b.net < 0).map((b) => ({ ...b, left: -b.net }));
-  const creditors = balances.filter((b) => b.net > 0).map((b) => ({ ...b, left: b.net }));
+  // Split people into debtors and creditors
+  const debtors: PersonLeft[] = [];
+  const creditors: PersonLeft[] = [];
+  for (const balance of balances) {
+    if (balance.net < 0) {
+      debtors.push({ id: balance.participant, name: balance.name, left: -balance.net });
+    } else if (balance.net > 0) {
+      creditors.push({ id: balance.participant, name: balance.name, left: balance.net });
+    }
+  }
+
+  // Biggest amounts first, so the biggest debts are settled first 
   debtors.sort((a, b) => b.left - a.left);
   creditors.sort((a, b) => b.left - a.left);
 
+  // Each debtor pays creditors in turn until their debt is cleared
   const settlements: Settlement[] = [];
-  let d = 0;
-  let c = 0;
-  while (d < debtors.length && c < creditors.length) {
-    const debtor = debtors[d];
-    const creditor = creditors[c];
-    const amount = Math.min(debtor.left, creditor.left);
+  for (const debtor of debtors) {
+    for (const creditor of creditors) {
+      if (debtor.left === 0) {
+        break; // this debtor has paid off their debt
+      } 
+      if (creditor.left === 0) {
+        continue; // this creditor has been paid off, go to the next one
+      }
 
-    settlements.push({
-      from: debtor.participant,
-      fromName: debtor.name,
-      to: creditor.participant,
-      toName: creditor.name,
-      amount,
-    });
+      // Pay as much as possible: whichever is smaller, the debt or what the creditor is still owed
+      const amount = Math.min(debtor.left, creditor.left);
+      settlements.push({
+        from: debtor.id,
+        fromName: debtor.name,
+        to: creditor.id,
+        toName: creditor.name,
+        amount: amount
+      });
 
-    debtor.left -= amount;
-    creditor.left -= amount;
-    if (debtor.left === 0) d++;
-    if (creditor.left === 0) c++;
+      debtor.left -= amount;
+      creditor.left -= amount;
+    }
   }
 
   return { balances, settlements };
@@ -88,7 +117,8 @@ export function computeBalances(
 
 export class BalanceService {
 
-  /** Calculated (not stored) data: how much each person paid, owes, and who should pay whom. */
+  // Balances are worked out from the expenses every time - they are never stored,
+  // so they can never be out of date.
   async getBalances(tripId: string) {
     const trip = await tripService.requireTrip(tripId);
 
@@ -97,19 +127,27 @@ export class BalanceService {
       ExpenseModel.find({ trip: tripId }).lean(),
     ]);
 
-    const { balances, settlements } = computeBalances(
-      participants.map((p) => ({ id: String(p._id), name: p.name })),
-      expenses.map((e) => ({
-        paidBy: String(e.paidBy),
-        amount: e.amount,
-        splits: e.splits.map((s) => ({ participant: String(s.participant), share: s.share })),
-      }))
-    );
+    // Turn the database ids into plain text, so they can be compared with ===
+    const people: BalanceParticipant[] = participants.map((p) => ({ 
+      id: String(p._id), 
+      name: p.name }));
+    const simpleExpenses: BalanceExpense[] = expenses.map((e) => ({
+      paidBy: String(e.paidBy),
+      amount: e.amount,
+      splits: e.splits.map((s) => ({ participant: String(s.participant), share: s.share })),
+    }));
+
+    const { balances, settlements } = computeBalances(people, simpleExpenses);
+
+    let totalSpent = 0;
+    for (const expense of expenses) {
+      totalSpent += expense.amount;
+    }
 
     return {
       trip: tripId,
       currency: trip.currency,
-      totalSpent: expenses.reduce((sum, e) => sum + e.amount, 0),
+      totalSpent: totalSpent,
       balances,
       settlements,
     };
