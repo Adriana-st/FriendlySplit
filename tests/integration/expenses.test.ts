@@ -67,7 +67,6 @@ describe('POST /api/v1/trips/:tripId/expenses', () => {
       ['category is not allowed', { category: 'gambling' }, 'category'],
       ['date is not a real date', { date: '2026-13-45' }, 'date'],
       ['paidBy is not a valid id', { paidBy: 'adri' }, 'paidBy'],
-      ['an unknown property is sent', { discount: 10 }, ''],
     ];
 
     it.each(cases)('when %s', async (_label, overrides, field) => {
@@ -93,7 +92,7 @@ describe('POST /api/v1/trips/:tripId/expenses', () => {
         );
 
       expect(res.status).toBe(400);
-      expect(res.body.errors[0].message).toMatch(/Shares must add up to the amount \(5000\) but add up to 4000/);
+      expect(res.body.errors[0].message).toMatch('Shares must add up to exactly the amount');
     });
 
     it('when a participant appears twice in splits', async () => {
@@ -127,6 +126,16 @@ describe('POST /api/v1/trips/:tripId/expenses', () => {
         );
       expect(res.status).toBe(400);
     });
+  });
+
+  it('ignores unknown properties and does not save them (201)', async () => {
+    const { trip, adri } = await makeTripWithPeople();
+    const res = await request(app)
+      .post(`/api/v1/trips/${trip._id}/expenses`)
+      .send(expenseData(adri._id, { discount: 10 }));
+
+    expect(res.status).toBe(201);
+    expect(res.body).not.toHaveProperty('discount');
   });
 
   describe('breaks a business rule (422)', () => {
