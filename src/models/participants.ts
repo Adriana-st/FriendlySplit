@@ -1,6 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, paginationZShape } from './common';
 
 export interface IParticipant {
   trip: Types.ObjectId;
@@ -74,12 +73,18 @@ export const participantZSchema = z.strictObject({
 export type ParticipantInput = z.infer<typeof participantZSchema>;
 
 export const PARTICIPANT_SORT_FIELDS = ['name', '-name', 'createdAt', '-createdAt'] as const;
-export const PARTICIPANT_FIELDS = ['trip', 'name', 'email', 'createdAt', 'updatedAt'] as const;
+// Fields the client is allowed to ask for with ?fields=name,email. If the client asks for a field not in this list, it is rejected.
+export const PARTICIPANT_FIELDS = ['trip', 'name', 'email', 'createdAt', 'updatedAt'];
 
 export const participantQueryZSchema = z.strictObject({
-  name: z.string().trim().min(1).max(60).optional(), // partial, case-insensitive match
+  name: z.string().trim().min(1).max(60).optional(), 
   sort: z.enum(PARTICIPANT_SORT_FIELDS).default('name'),
-  fields: fieldsZSchema(PARTICIPANT_FIELDS),
-  ...paginationZShape,
+  fields: z
+    .string()
+    .refine((value) => value.split(',').every((field) => PARTICIPANT_FIELDS.includes(field)), 'fields can only contain: ' + PARTICIPANT_FIELDS.join(', '))
+    .optional(),
+  //Paging. Query strings are always text, so coerce turns "2" into the number 2
+  page: z.coerce.number().int().min(1).default(1),    // page number, starting at 1
+  limit: z.coerce.number().int().min(1).max(100).default(20), // number of participants per page
 });
 export type ParticipantQuery = z.infer<typeof participantQueryZSchema>;

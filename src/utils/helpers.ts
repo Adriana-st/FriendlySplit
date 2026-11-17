@@ -21,9 +21,6 @@ export const paginate = (page: number, limit: number) => ({
 export const buildSort = (sort: string): Record<string, 1 | -1> =>
   sort.startsWith('-') ? { [sort.slice(1)]: -1 } : { [sort]: 1 };
 
-/** Turns ["name", "email"] into "name email" for Mongoose .select(). No fields means "everything". */
-export const buildSelect = (fields?: string[]): string => (fields ? fields.join(' ') : '');
-
 /** Shape of every list response: the items plus paging information. */
 export const listResponse = <T>(data: T[], page: number, limit: number, total: number) => ({
   data,

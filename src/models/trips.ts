@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, paginationZShape } from './common';
 
 // What a trip looks like in the database
 export interface ITrip {
@@ -107,16 +106,21 @@ export const tripZSchema = z
 
 
 export const TRIP_SORT_FIELDS = ['startDate', '-startDate', 'name', '-name', 'createdAt', '-createdAt'] as const;
-export const TRIP_FIELDS = ['name', 'destination', 'currency', 'startDate', 'endDate', 'createdAt', 'updatedAt'] as const;
+// Fields the client is allowed to ask for with ?fields=name,destination. If the client asks for a field not in this list, it is rejected.
+export const TRIP_FIELDS = ['name', 'destination', 'currency', 'startDate', 'endDate', 'createdAt', 'updatedAt'];
 
 /** Query string for GET /trips. strictObject rejects any parameter that is not listed. */
 export const tripQueryZSchema = z.strictObject({
-  destination: z.string().trim().min(1).max(80).optional(), // partial, case-insensitive match
+  destination: z.string().trim().min(1).max(80).optional(), 
   currency: z.string().trim().length(3).toUpperCase().optional(),
   startsAfter: z.iso.date().optional(), // trips starting on or after this date
   startsBefore: z.iso.date().optional(), // trips starting on or before this date
   sort: z.enum(TRIP_SORT_FIELDS).default('-startDate'),
-  fields: fieldsZSchema(TRIP_FIELDS),
-  ...paginationZShape,
+  fields: z
+    .string()
+    .refine((value) => value.split(',').every((field) => TRIP_FIELDS.includes(field)), 'fields can only contain: ' + TRIP_FIELDS.join(', '))
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),    // page number, starting at 1
+  limit: z.coerce.number().int().min(1).max(100).default(20), // number of trips per page
 });
 export type TripQuery = z.infer<typeof tripQueryZSchema>;

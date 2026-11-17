@@ -86,11 +86,16 @@ describe('Test Trip Query Validation', () => {
         expect(parsed.limit).toBe(5);
     });
 
-    it('should turn fields into a list', () => {
+    it('should accept a list of allowed fields', () => {
 
         const parsed = tripQueryZSchema.parse({ fields: "name,currency" });
 
-        expect(parsed.fields).toEqual(["name", "currency"]);
+        expect(parsed.fields).toBe("name,currency");
+    });
+    
+    it('should fail for a field that is not allowed', () => {
+
+        expect(() => tripQueryZSchema.parse({ fields: "name,password" })).toThrow();
     });
 
     it('should fail for an unknown sort field', () => {

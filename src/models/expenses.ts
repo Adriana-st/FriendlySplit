@@ -1,6 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
 import { z } from 'zod';
-import { fieldsZSchema, paginationZShape } from './common';
 
 // A MongoDB id: 24 characters, each 0-9 or a-f
 const objectIdZSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Must be a valid 24 character id');
@@ -188,7 +187,8 @@ export const expenseZSchema = z
 export type ExpenseInput = z.infer<typeof expenseZSchema>;
 
 export const EXPENSE_SORT_FIELDS = ['date', '-date', 'amount', '-amount'] as const;
-export const EXPENSE_FIELDS = ['trip', 'paidBy', 'description', 'amount', 'category', 'date', 'splits', 'createdAt', 'updatedAt'] as const;
+// Fields the client is allowed to ask for with ?fields=description,amount. If the client asks for a field not in this list, it is rejected.
+export const EXPENSE_FIELDS = ['trip', 'paidBy', 'description', 'amount', 'category', 'date', 'splits', 'createdAt', 'updatedAt'];
 
 /** Query string for GET /trips/:tripId/expenses. */
 export const expenseQueryZSchema = z
@@ -201,8 +201,13 @@ export const expenseQueryZSchema = z
     from: z.iso.date().optional(), // expenses on or after this date
     to: z.iso.date().optional(), // expenses on or before this date
     sort: z.enum(EXPENSE_SORT_FIELDS).default('-date'),
-    fields: fieldsZSchema(EXPENSE_FIELDS),
-    ...paginationZShape,
+    fields: z
+      .string()
+      .refine((value) => value.split(',').every((field) => EXPENSE_FIELDS.includes(field)), 'fields can only contain: ' + EXPENSE_FIELDS.join(', '))  
+      .optional(),
+    //Paging. Query strings are always text, so coerce turns "2" into the number 2
+    page: z.coerce.number().int().min(1).default(1),    // page number, starting at 1
+    limit: z.coerce.number().int().min(1).max(100).default(20), // number of expenses per page
   })
   .refine((q) => q.minAmount === undefined || q.maxAmount === undefined || q.minAmount <= q.maxAmount, {
     message: 'minAmount must not be greater than maxAmount',

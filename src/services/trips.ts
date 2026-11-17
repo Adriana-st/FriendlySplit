@@ -1,6 +1,6 @@
 import { HydratedDocument } from 'mongoose';
 import { ITrip, TripInput, TripModel, TripQuery } from '../models/trips';
-import { buildSelect, buildSort, escapeRegex, paginate, toDate } from '../utils/helpers';
+import { buildSort, escapeRegex, paginate, toDate } from '../utils/helpers';
 import { ParticipantModel } from '../models/participants';
 import { ExpenseModel } from '../models/expenses';
 import { notFound, unprocessable } from '../utils/errors';
@@ -28,7 +28,7 @@ export class TripService {
 
     const [trips, total] = await Promise.all([
       TripModel.find(filter)
-        .select(buildSelect(query.fields))
+                .select(query.fields ? query.fields.split(',').join(' ') : '') // "name,currency" -> "name currency"; '' means all fields
         .sort({ ...buildSort(query.sort), _id: 1 })
         .skip(skip)
         .limit(limit)

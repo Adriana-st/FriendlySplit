@@ -2,7 +2,7 @@ import { ExpenseInput, ExpenseModel, ExpenseQuery } from '../models/expenses';
 import { ParticipantModel } from '../models/participants';
 import { TripService } from './trips';
 import { unprocessable } from '../utils/errors';
-import { buildSelect, buildSort, dayText, escapeRegex, paginate, toDate } from '../utils/helpers';
+import { buildSort, dayText, escapeRegex, paginate, toDate } from '../utils/helpers';
 
 const tripService = new TripService();
 
@@ -94,7 +94,7 @@ export class ExpenseService {
 
     const [expenses, total] = await Promise.all([
       ExpenseModel.find(filter)
-        .select(buildSelect(query.fields))
+        .select(query.fields ? query.fields.split(',').join(' ') : '') // "name,currency" -> "name currency"; '' means all fields
         .sort({ ...buildSort(query.sort), _id: 1 })
         .skip(skip)
         .limit(limit)

@@ -1,7 +1,7 @@
 import { ParticipantInput, ParticipantModel, ParticipantQuery } from '../models/participants';
 import { TripService } from './trips';
 import { conflict } from '../utils/errors';
-import { buildSelect, buildSort, escapeRegex, paginate } from '../utils/helpers';
+import { buildSort, escapeRegex, paginate } from '../utils/helpers';
 import { ExpenseModel } from '../models/expenses';
 
 const tripService = new TripService();
@@ -20,7 +20,7 @@ export class ParticipantService {
 
     const [participants, total] = await Promise.all([
       ParticipantModel.find(filter)
-        .select(buildSelect(query.fields))
+        .select(query.fields ? query.fields.split(',').join(' ') : '') // "name,currency" -> "name currency"; '' means all fields
         .sort({ ...buildSort(query.sort), _id: 1 })
         .skip(skip)
         .limit(limit)

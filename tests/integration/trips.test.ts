@@ -54,9 +54,11 @@ describe('POST /api/v1/trips', () => {
     expect(res.body.errors.map((e: { path: string }) => e.path)).toContain(field);
   });
 
-  it('rejects unknown properties instead of silently ignoring them (400)', async () => {
+    it('ignores unknown properties and does not save them (201)', async () => {
     const res = await request(app).post('/api/v1/trips').send(tripData({ isAdmin: true }));
-    expect(res.status).toBe(400);
+
+    expect(res.status).toBe(201);
+    expect(res.body).not.toHaveProperty('isAdmin');
   });
 });
 
