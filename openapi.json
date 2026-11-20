@@ -326,7 +326,6 @@
           "name",
           "email"
         ],
-        "additionalProperties": false,
         "properties": {
           "name": {
             "type": "string",
@@ -411,7 +410,6 @@
           "category",
           "date"
         ],
-        "additionalProperties": false,
         "properties": {
           "paidBy": {
             "$ref": "#/components/schemas/ObjectId"
